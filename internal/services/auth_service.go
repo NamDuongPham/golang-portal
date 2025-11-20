@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"log"
 
 	"github.com/namduong/project-layout/internal/auth"
 	"github.com/namduong/project-layout/internal/models"
@@ -40,6 +41,7 @@ func (s *AuthService) Login(username string, password string) (accessToken strin
 	}
 
 	rt := &models.RefreshToken{
+		ID:        claims.Id,
 		Token:     refreshToken,
 		UserID:    claims.UserID,
 		ExpiresAt: claims.ExpiresAt.Time,
@@ -52,6 +54,19 @@ func (s *AuthService) Login(username string, password string) (accessToken strin
 
 	return accessToken, refreshToken, nil
 }
+func (s *AuthService) Logout(token string) error {
+	claims, err := auth.DecodeAccessToken(token)
+	if err != nil {
+		return err
+	}
+	log.Printf("Logging out user ID: %s", claims.UserID)
+	err = s.RefreshTokenRepo.DeleteByUserID(claims.UserID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func NewAuthService(adminRepo *repositories.AdminRepository, refreshTokenRepo *repositories.RefreshTokenRepository) AuthServiceInterface {
 	return &AuthService{
@@ -62,4 +77,5 @@ func NewAuthService(adminRepo *repositories.AdminRepository, refreshTokenRepo *r
 
 type AuthServiceInterface interface {
 	Login(username, password string) (accessToken, refreshToken string, err error)
+	Logout(token string) error
 }

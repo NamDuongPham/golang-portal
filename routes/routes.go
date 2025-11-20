@@ -16,6 +16,7 @@ func InitRouter(authService services.AuthServiceInterface) *gin.Engine {
 	authRoutes := router.Group("api/v1/auth")
 	{
 		authRoutes.POST("/login", adminHandler.Login)
+		authRoutes.POST("/logout", adminHandler.Logout)
 	}
 
 	return router
