@@ -1,57 +1,40 @@
 package services
 
-import (
-	"errors"
+// func (s *AuthService) Login(username, password string) (accessToken, refreshToken string, err error) {
+// 	admin, err := s.AdminRepo.FindByUsername(username)
+// 	if err != nil {
+// 		return "", "", err
+// 	}
+// 	hashedPassWord := utils.HashPassword(password)
+// 	if admin.Password != hashedPassWord {
+// 		return "", "", errors.New("wrong password")
+// 	}
 
-	"github.com/namduong/project-layout/internal/auth"
-	"github.com/namduong/project-layout/internal/models"
-	"github.com/namduong/project-layout/internal/repositories"
-	"github.com/namduong/project-layout/utils"
-)
+// 	accessToken, err = auth.GenerateAccessToken(admin.ID, admin.UserName)
+// 	if err != nil {
+// 		return "", "", err
+// 	}
 
-type AuthService interface {
-	Login(username, password string) (accessToken, refreshToken string, err error)
-}
+// 	refreshToken, err = auth.GenerateRefreshToken(admin.ID, admin.UserName)
+// 	if err != nil {
+// 		return "", "", err
+// 	}
 
-type authService struct {
-	AdminRepo    repositories.AdminRepository
-	RefreshToken repositories.RefreshTokenRepository
-	TokenService auth.TokenService
-}
+// 	claims, err := auth.DecodeRefreshToken(refreshToken)
+// 	if err != nil {
+// 		return "", "", err
+// 	}
 
-func (s *authService) Login(username, password string) (accessToken, refreshToken string, err error) {
-	admin, err := s.AdminRepo.FindByUsername(username)
-	if err != nil {
-		return "", "", err
-	}
-	hashedPassWord := utils.HashPassword(password)
-	if admin.Password != hashedPassWord {
-		return "", "", errors.New("wrong password")
-	}
-	accessToken, err = s.TokenService.GenerateAccessToken(admin.ID, admin.UserName)
-	if err != nil {
-		return "", "", err
-	}
+// 	rt := &models.RefreshToken{
+// 		Token:     refreshToken,
+// 		UserID:    claims.UserID,
+// 		ExpiresAt: claims.ExpiresAt.Time,
+// 	}
 
-	refreshToken, err = s.TokenService.GenerateRefreshToken(admin.ID, admin.UserName)
-	if err != nil {
-		return "", "", err
-	}
-	claims, err := s.TokenService.DecodeRefreshToken(refreshToken)
+// 	err = s.RefreshTokenRepo.Create(rt)
+// 	if err != nil {
+// 		return "", "", err
+// 	}
 
-	rt := &models.RefreshToken{
-		Token:     refreshToken,
-		UserID:    claims.UserID,
-		ExpiresAt: claims.ExpiresAt.Time,
-	}
-
-	err = s.RefreshToken.Create(rt)
-	if err != nil {
-		return "", "", err
-	}
-
-	if err != nil {
-		return "", "", err
-	}
-	return accessToken, refreshToken, nil
-}
+// 	return accessToken, refreshToken, nil
+// }

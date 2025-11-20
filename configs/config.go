@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/sethvargo/go-envconfig"
 )
 
@@ -19,6 +20,12 @@ type Config struct {
 	API        APIConfig `env:",prefix=API_"`
 	Environemt string    `env:"ENV"`
 	Databases  DBConfig  `env:",prefix=DB_"`
+	JWT        JWTConfig `env:",prefix=JWT_"`
+}
+
+type JWTConfig struct {
+	AccessSecretKey  string `env:"ACCESS_TOKEN_SECRET, default=your_access_secret_key"`
+	RefreshSecretKey string `env:"REFRESH_TOKEN_SECRET, default=your_refresh_secret_key"`
 }
 
 type APIConfig struct {
@@ -57,6 +64,13 @@ func (c DBAttributes) GetPostgresDSN() string {
 
 func Load() Config {
 	ctx := context.Background()
+
+	// Try to load a .env file (optional). If it doesn't exist, continue —
+	// go-envconfig will read environment variables from the environment.
+	if err := godotenv.Load(); err != nil {
+		// Not fatal; often there is no .env in production. Log at debug level.
+		logger.LogAttrs(ctx, slog.LevelDebug, "No .env file loaded", slog.Any("error", err))
+	}
 
 	var c Config
 	if err := envconfig.Process(ctx, &c); err != nil {

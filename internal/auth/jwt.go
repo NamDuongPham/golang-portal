@@ -3,27 +3,29 @@ package auth
 import (
 	"errors"
 	"log"
-	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
+	config "github.com/namduong/project-layout/configs"
 )
 
 type Claims struct {
+	Id       string `json:"id,omitempty"`
 	UserID   string `json:"user_id"`
 	Username string `json:"username"`
 	jwt.RegisteredClaims
 }
 
 func getAccessSecretKey() []byte {
-	secret := os.Getenv("ACCESS_TOKEN_SECRET")
+	secret := config.Cfg.JWT.AccessSecretKey
 	if secret == "" {
 		log.Fatal("ACCESS_TOKEN_SECRET is not set in environment variables")
 	}
 	return []byte(secret)
 }
 func getRefreshSecretKey() []byte {
-	secret := os.Getenv("REFRESH_TOKEN_SECRET")
+	secret := config.Cfg.JWT.RefreshSecretKey
 	if secret == "" {
 		log.Fatal("REFRESH_TOKEN_SECRET is not set in environment variables")
 	}
@@ -57,7 +59,9 @@ func DecodeAccessToken(tokenString string) (*Claims, error) {
 }
 func GenerateRefreshToken(userID, username string) (string, error) {
 	ttl := time.Hour * 24
+	tokenID := uuid.New().String()
 	claims := Claims{
+		Id:       tokenID,
 		UserID:   userID,
 		Username: username,
 		RegisteredClaims: jwt.RegisteredClaims{

@@ -1,20 +1,22 @@
 package repositories
 
 import (
-	"errors"
-
 	"github.com/namduong/project-layout/internal/models"
+	"gorm.io/gorm"
 )
 
 type AdminRepository struct {
-	admins []models.Admin
+	db *gorm.DB
+}
+
+func NewAdminRepository(db *gorm.DB) *AdminRepository {
+	return &AdminRepository{db: db}
 }
 
 func (r *AdminRepository) FindByUsername(username string) (*models.Admin, error) {
-	for _, admin := range r.admins {
-		if admin.UserName == username {
-			return &admin, nil
-		}
+	var admin models.Admin
+	if err := r.db.Where("username = ?", username).First(&admin).Error; err != nil {
+		return nil, err
 	}
-	return nil, errors.New("admin not found")
+	return &admin, nil
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/namduong/project-layout/internal/services"
 )
 
-func InitRouter(authService services.AuthService) *gin.Engine {
+func InitRouter(authService services.AuthServiceInterface) *gin.Engine {
 	router := gin.Default()
 
 	adminHandler := http.AdminHandler{

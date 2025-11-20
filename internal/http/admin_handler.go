@@ -6,7 +6,7 @@ import (
 )
 
 type AdminHandler struct {
-	AuthService services.AuthService
+	AuthService services.AuthServiceInterface
 }
 
 type LoginRequest struct {

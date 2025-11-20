@@ -32,3 +32,7 @@ func Connect() {
 	}
 	db.AutoMigrate(&models.Admin{}, &models.RefreshToken{})
 }
+
+func GetGormDB() *gorm.DB {
+	return db
+}
