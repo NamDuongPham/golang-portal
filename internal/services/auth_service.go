@@ -1,13 +1,11 @@
 package services
 
 import (
-	"errors"
-	"log"
-
+	"github.com/namduong/project-layout/helper"
 	"github.com/namduong/project-layout/internal/auth"
 	"github.com/namduong/project-layout/internal/models"
 	"github.com/namduong/project-layout/internal/repositories"
-	"github.com/namduong/project-layout/utils"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct {
@@ -15,57 +13,106 @@ type AuthService struct {
 	RefreshTokenRepo *repositories.RefreshTokenRepository
 }
 
-func (s *AuthService) Login(username string, password string) (accessToken string, refreshToken string, err error) {
-	admin, err := s.AdminRepo.FindByUsername(username)
+func (s *AuthService) saveRefreshToken(rawToken string) error {
+	claims, err := auth.DecodeRefreshToken(rawToken)
 	if err != nil {
-		return "", "", err
-	}
-	hashedPassWord := utils.HashPassword(password)
-	if admin.Password != hashedPassWord {
-		return "", "", errors.New("wrong password")
-	}
-
-	accessToken, err = auth.GenerateAccessToken(admin.ID, admin.UserName)
-	if err != nil {
-		return "", "", err
-	}
-
-	refreshToken, err = auth.GenerateRefreshToken(admin.ID, admin.UserName)
-	if err != nil {
-		return "", "", err
-	}
-
-	claims, err := auth.DecodeRefreshToken(refreshToken)
-	if err != nil {
-		return "", "", err
+		return err
 	}
 
 	rt := &models.RefreshToken{
 		ID:        claims.Id,
-		Token:     refreshToken,
+		Token:     rawToken,
 		UserID:    claims.UserID,
 		ExpiresAt: claims.ExpiresAt.Time,
 	}
 
-	err = s.RefreshTokenRepo.Create(rt)
+	return s.RefreshTokenRepo.Create(rt)
+}
+
+func (s *AuthService) Login(username string, password string) helper.Response {
+	admin, err := s.AdminRepo.FindByUsername(username)
 	if err != nil {
-		return "", "", err
+		return helper.BuildErrorResponse("Authentication failed", "invalid credentials", nil)
 	}
 
-	return accessToken, refreshToken, nil
+	if err := bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(password)); err != nil {
+		return helper.BuildErrorResponse("Authentication failed", "invalid credentials", nil)
+	}
+
+	accessToken, err := auth.GenerateAccessToken(admin.ID, admin.UserName)
+	if err != nil {
+		return helper.BuildErrorResponse("Failed to generate access token", err.Error(), nil)
+	}
+
+	refreshToken, err := auth.GenerateRefreshToken(admin.ID, admin.UserName)
+	if err != nil {
+		return helper.BuildErrorResponse("Failed to generate refresh token", err.Error(), nil)
+	}
+
+	if err := s.saveRefreshToken(refreshToken); err != nil {
+		return helper.BuildErrorResponse("Failed to save refresh token", err.Error(), nil)
+	}
+
+	responseData := AuthResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}
+
+	return helper.BuildResponse(true, "Login successful", responseData)
 }
-func (s *AuthService) Logout(token string) error {
+
+func (s *AuthService) Logout(token string) helper.Response {
 	claims, err := auth.DecodeAccessToken(token)
 	if err != nil {
-		return err
-	}
-	log.Printf("Logging out user ID: %s", claims.UserID)
-	err = s.RefreshTokenRepo.DeleteByUserID(claims.UserID)
-	if err != nil {
-		return err
+		return helper.BuildErrorResponse("Invalid token", err.Error(), nil)
 	}
 
-	return nil
+	if err := s.RefreshTokenRepo.DeleteByUserID(claims.UserID); err != nil {
+		return helper.BuildErrorResponse("Failed to logout", err.Error(), nil)
+	}
+
+	return helper.BuildResponse(true, "Logout successful", nil)
+}
+
+func (s *AuthService) RefreshToken(token string) helper.Response {
+	claims, err := auth.DecodeRefreshToken(token)
+	if err != nil {
+		return helper.BuildErrorResponse("Invalid refresh token", err.Error(), nil)
+	}
+
+	storedToken, err := s.RefreshTokenRepo.FindByID(claims.Id)
+	if err != nil {
+		return helper.BuildErrorResponse("Invalid refresh token", "token not found in database", nil)
+	}
+
+	if storedToken.Token != token {
+		return helper.BuildErrorResponse("Invalid refresh token", "token mismatch", nil)
+	}
+
+	newAccessToken, err := auth.GenerateAccessToken(claims.UserID, claims.Username)
+	if err != nil {
+		return helper.BuildErrorResponse("Failed to generate access token", err.Error(), nil)
+	}
+
+	newRefreshToken, err := auth.GenerateRefreshToken(claims.UserID, claims.Username)
+	if err != nil {
+		return helper.BuildErrorResponse("Failed to generate refresh token", err.Error(), nil)
+	}
+
+	if err := s.saveRefreshToken(newRefreshToken); err != nil {
+		return helper.BuildErrorResponse("Failed to save refresh token", err.Error(), nil)
+	}
+
+	if err := s.RefreshTokenRepo.DeleteByUserID(claims.UserID); err != nil {
+		return helper.BuildErrorResponse("Failed to delete old refresh token", err.Error(), nil)
+	}
+
+	responseData := AuthResponse{
+		AccessToken:  newAccessToken,
+		RefreshToken: newRefreshToken,
+	}
+
+	return helper.BuildResponse(true, "Token refreshed successfully", responseData)
 }
 
 func NewAuthService(adminRepo *repositories.AdminRepository, refreshTokenRepo *repositories.RefreshTokenRepository) AuthServiceInterface {
@@ -75,7 +122,13 @@ func NewAuthService(adminRepo *repositories.AdminRepository, refreshTokenRepo *r
 	}
 }
 
+type AuthResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
 type AuthServiceInterface interface {
-	Login(username, password string) (accessToken, refreshToken string, err error)
-	Logout(token string) error
+	Login(username, password string) helper.Response
+	Logout(token string) helper.Response
+	RefreshToken(token string) helper.Response
 }

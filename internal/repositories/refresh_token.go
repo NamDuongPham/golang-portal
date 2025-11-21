@@ -19,6 +19,15 @@ func (r *RefreshTokenRepository) DeleteByUserID(userID string) error {
 		Where("user_id = ?", userID).
 		Update("deleted_at", time.Now()).Error
 }
+func (r *RefreshTokenRepository) FindByID(id string) (*models.RefreshToken, error) {
+	var refreshToken models.RefreshToken
+	if err := r.db.Model(&models.RefreshToken{}).
+		Where("id = ?", id).
+		First(&refreshToken).Error; err != nil {
+		return nil, err
+	}
+	return &refreshToken, nil
+}
 func NewRefreshTokenRepository(db *gorm.DB) *RefreshTokenRepository {
 	return &RefreshTokenRepository{db: db}
 }
