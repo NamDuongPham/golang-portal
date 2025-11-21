@@ -4,7 +4,7 @@ import (
 	"github.com/namduong/project-layout/internal/database"
 	"github.com/namduong/project-layout/internal/repositories"
 	"github.com/namduong/project-layout/internal/services"
-	"github.com/namduong/project-layout/routes"
+	router "github.com/namduong/project-layout/router"
 )
 
 func main() {
@@ -18,7 +18,7 @@ func main() {
 
 	service := services.NewAuthService(adminRepo, refreshTokenRepo)
 
-	r := routes.InitRouter(service)
+	r := router.InitRouter(service)
 
 	r.Run()
 }

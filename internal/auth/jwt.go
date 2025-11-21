@@ -85,3 +85,10 @@ func DecodeRefreshToken(tokenString string) (*Claims, error) {
 	}
 	return nil, errors.New("invalid or expired token")
 }
+
+type TokenService interface {
+	GenerateAccessToken(userID, username string) (string, error)
+	GenerateRefreshToken(userID, username string) (string, error)
+	DecodeAccessToken(tokenString string) (*Claims, error)
+	DecodeRefreshToken(tokenString string) (*Claims, error)
+}
