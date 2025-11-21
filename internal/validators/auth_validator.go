@@ -13,7 +13,6 @@ type LoginRequest struct {
 
 func ValidateLogin(c *gin.Context) (*LoginRequest, bool) {
 	var req LoginRequest
-
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "invalid request body",

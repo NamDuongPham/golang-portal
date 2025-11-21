@@ -14,9 +14,10 @@ func AdminRouter(router *gin.RouterGroup, authService services.AuthServiceInterf
 
 	authRoutes.POST("/login", adminHandler.Login)
 	authRoutes.POST("/refresh-token", adminHandler.RefreshToken)
-
-	authRoutes.Use(middlewares.AuthMiddleware())
+	protected := authRoutes.Group("/")
+	protected.Use(middlewares.AuthMiddleware())
 	{
 		authRoutes.POST("/logout", adminHandler.Logout)
+		RestaurantRouter(protected, authService)
 	}
 }
