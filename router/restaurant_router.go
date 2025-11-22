@@ -12,5 +12,10 @@ func RestaurantRouter(router *gin.RouterGroup, restaurantService services.Restau
 
 	{
 		router.POST("/create", restaurantHandler.Create)
+		router.GET("/", restaurantHandler.GetAll)
+		router.GET("/search", restaurantHandler.Search)
+		router.GET("/:id", restaurantHandler.GetByID)
+		router.PUT("/:id", restaurantHandler.Update)
+		router.DELETE("/:id", restaurantHandler.Delete)
 	}
 }
