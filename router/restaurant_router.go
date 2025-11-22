@@ -6,12 +6,11 @@ import (
 	"github.com/namduong/project-layout/internal/services"
 )
 
-func RestaurantRouter(router *gin.RouterGroup, authService services.AuthServiceInterface) {
-	restaurantHandler := handlers.RestaurantHandler{AuthService: authService}
+func RestaurantRouter(router *gin.RouterGroup, restaurantService services.RestaurantServiceInterface) {
 
-	authRoutes := router.Group("/restaurant")
+	restaurantHandler := handlers.RestaurantHandler{RestaurantService: restaurantService}
 
 	{
-		authRoutes.POST("/create", restaurantHandler.Create)
+		router.POST("/create", restaurantHandler.Create)
 	}
 }

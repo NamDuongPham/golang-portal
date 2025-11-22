@@ -15,10 +15,12 @@ func main() {
 	}
 	adminRepo := repositories.NewAdminRepository(gormDB)
 	refreshTokenRepo := repositories.NewRefreshTokenRepository(gormDB)
+	restaurantRepo := repositories.NewRestaurantRepository(gormDB)
 
 	service := services.NewAuthService(adminRepo, refreshTokenRepo)
+	restaurantService := services.NewRestaurantService(restaurantRepo)
 
-	r := router.InitRouter(service)
+	r := router.InitRouter(service, restaurantService)
 
 	r.Run()
 }

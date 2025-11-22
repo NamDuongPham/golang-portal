@@ -30,7 +30,7 @@ func Connect() {
 	if err != nil {
 		log.Fatalf("Failed to connect to DB: %v", err)
 	}
-	db.AutoMigrate(&models.Admin{}, &models.RefreshToken{})
+	db.AutoMigrate(&models.Admin{}, &models.RefreshToken{}, &models.Restaurant{}, &models.Ingredient{}, &models.User{})
 }
 
 func GetGormDB() *gorm.DB {

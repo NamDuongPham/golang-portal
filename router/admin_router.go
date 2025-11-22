@@ -18,6 +18,6 @@ func AdminRouter(router *gin.RouterGroup, authService services.AuthServiceInterf
 	protected.Use(middlewares.AuthMiddleware())
 	{
 		authRoutes.POST("/logout", adminHandler.Logout)
-		RestaurantRouter(protected, authService)
+
 	}
 }
