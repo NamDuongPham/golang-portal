@@ -66,7 +66,10 @@ func (s *AuthService) Logout(token string) helper.Response {
 	if err != nil {
 		return helper.BuildErrorResponse("Invalid access token", err.Error(), nil)
 	}
-
+	rt, err := s.RefreshTokenRepo.FindByUserID(claims.UserID)
+	if err != nil || rt == nil {
+		return helper.BuildErrorResponse("Already logged out", "no active refresh token", nil)
+	}
 	if err := s.RefreshTokenRepo.DeleteByUserID(claims.UserID); err != nil {
 		return helper.BuildErrorResponse("Failed to logout", err.Error(), nil)
 	}
