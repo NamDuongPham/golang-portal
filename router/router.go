@@ -6,17 +6,17 @@ import (
 	"github.com/namduong/project-layout/internal/services"
 )
 
-func InitRouter(authService services.AuthServiceInterface, restaurantService services.RestaurantServiceInterface) *gin.Engine {
+func InitRouter(authService services.AuthServiceInterface, restaurantService services.RestaurantServiceInterface, ingredientService services.IngredientServiceInterface) *gin.Engine {
 	router := gin.Default()
 
 	apiV1 := router.Group("/api/v1")
 	{
 		AdminRouter(apiV1, authService)
-		protected := apiV1.Group("/restaurants")
+		protected := apiV1.Group("")
 		protected.Use(middlewares.AuthMiddleware())
-		{
-			RestaurantRouter(protected, restaurantService)
-		}
+
+		RestaurantRouter(protected.Group("/restaurants"), restaurantService)
+		IngredientRouter(protected.Group("/ingredients"), ingredientService)
 
 	}
 

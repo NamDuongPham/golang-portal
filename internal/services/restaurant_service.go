@@ -68,13 +68,11 @@ func (s *RestaurantService) GetRestaurantByID(id string) helper.Response {
 }
 
 func (s *RestaurantService) UpdateRestaurant(id string, updates map[string]interface{}) helper.Response {
-	// Check if restaurant exists
 	_, err := s.RestaurantRepo.FindByID(id)
 	if err != nil {
 		return helper.BuildErrorResponse("Restaurant not found", err.Error(), nil)
 	}
 
-	// Remove empty values and nil
 	cleanUpdates := make(map[string]interface{})
 	for k, v := range updates {
 		if v != nil && v != "" {
@@ -91,13 +89,11 @@ func (s *RestaurantService) UpdateRestaurant(id string, updates map[string]inter
 		return helper.BuildErrorResponse("Failed to update restaurant", err.Error(), nil)
 	}
 
-	// Get updated restaurant
 	restaurant, _ := s.RestaurantRepo.FindByID(id)
 	return helper.BuildResponse(true, "Restaurant updated successfully", restaurant)
 }
 
 func (s *RestaurantService) DeleteRestaurant(id string) helper.Response {
-	// Check if restaurant exists
 	_, err := s.RestaurantRepo.FindByID(id)
 	if err != nil {
 		return helper.BuildErrorResponse("Restaurant not found", err.Error(), nil)
