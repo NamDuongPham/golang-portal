@@ -61,9 +61,10 @@ func (r *IngredientRepository) Update(id string, updates map[string]interface{})
 }
 
 func (r *IngredientRepository) Delete(id string) error {
+	now := time.Now()
 	return r.db.Model(&models.Ingredient{}).
 		Where("id = ? AND deleted_at IS NULL", id).
-		Update("deleted_at", time.Now()).Error
+		Update("deleted_at", &now).Error
 }
 
 func (r *IngredientRepository) Search(query string, page, pageSize int) ([]models.Ingredient, int64, error) {
@@ -74,7 +75,7 @@ func (r *IngredientRepository) Search(query string, page, pageSize int) ([]model
 
 	dbQuery := r.db.Model(&models.Ingredient{}).
 		Where("deleted_at IS NULL").
-		Where("name ILIKE ? OR address ILIKE ? OR code ILIKE ?", "%"+query+"%", "%"+query+"%", "%"+query+"%")
+		Where("name ILIKE ? OR code ILIKE ? OR unit ILIKE ?", "%"+query+"%", "%"+query+"%", "%"+query+"%")
 
 	if err := dbQuery.Count(&total).Error; err != nil {
 		return nil, 0, err

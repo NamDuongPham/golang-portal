@@ -6,7 +6,7 @@ import (
 	"github.com/namduong/project-layout/internal/services"
 )
 
-func InitRouter(authService services.AuthServiceInterface, restaurantService services.RestaurantServiceInterface, ingredientService services.IngredientServiceInterface) *gin.Engine {
+func InitRouter(authService services.AuthServiceInterface, restaurantService services.RestaurantServiceInterface, ingredientService services.IngredientServiceInterface, userService services.UserServiceInterface) *gin.Engine {
 	router := gin.Default()
 
 	apiV1 := router.Group("/api/v1")
@@ -17,6 +17,7 @@ func InitRouter(authService services.AuthServiceInterface, restaurantService ser
 
 		RestaurantRouter(protected.Group("/restaurants"), restaurantService)
 		IngredientRouter(protected.Group("/ingredients"), ingredientService)
+		UserRouter(protected.Group("/users"), userService)
 
 	}
 

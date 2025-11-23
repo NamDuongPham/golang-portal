@@ -61,9 +61,10 @@ func (r *RestaurantRepository) Update(id string, updates map[string]interface{})
 }
 
 func (r *RestaurantRepository) Delete(id string) error {
+	now := time.Now()
 	return r.db.Model(&models.Restaurant{}).
 		Where("id = ? AND deleted_at IS NULL", id).
-		Update("deleted_at", time.Now()).Error
+		Update("deleted_at", &now).Error
 }
 
 func (r *RestaurantRepository) Search(query string, page, pageSize int) ([]models.Restaurant, int64, error) {
