@@ -8,25 +8,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func userToMap(user *models.User) map[string]interface{} {
-	userMap := make(map[string]interface{})
-	userMap["ID"] = user.ID
-	userMap["UserName"] = user.UserName
-	userMap["RestaurantID"] = user.RestaurantID
-	userMap["CreatedAt"] = user.CreatedAt
-	userMap["UpdatedAt"] = user.UpdatedAt
-	userMap["DeletedAt"] = user.DeletedAt
-	return userMap
-}
-
-func usersToMapSlice(users []models.User) []map[string]interface{} {
-	result := make([]map[string]interface{}, len(users))
-	for i := range users {
-		result[i] = userToMap(&users[i])
-	}
-	return result
-}
-
 type UserService struct {
 	UserRepo       *repositories.UserRepository
 	RestaurantRepo *repositories.RestaurantRepository
@@ -65,8 +46,9 @@ func (s *UserService) CreateUser(username, password, confirmPassword, restaurant
 		return helper.BuildErrorResponse("Failed to create user", err.Error(), nil)
 	}
 
-	userResponse := userToMap(newUser)
-	return helper.BuildResponse(true, "User created successfully", userResponse)
+	// Don't return password in response
+	newUser.Password = ""
+	return helper.BuildResponse(true, "User created successfully", newUser)
 }
 
 func (s *UserService) GetAllUsers(page, pageSize int) helper.Response {
@@ -85,10 +67,13 @@ func (s *UserService) GetAllUsers(page, pageSize int) helper.Response {
 		return helper.BuildErrorResponse("Failed to get users", err.Error(), nil)
 	}
 
-	usersResponse := usersToMapSlice(users)
+	// Remove passwords from response
+	for i := range users {
+		users[i].Password = ""
+	}
 
 	data := map[string]interface{}{
-		"users": usersResponse,
+		"users": users,
 		"pagination": map[string]interface{}{
 			"page":        page,
 			"size":        pageSize,
@@ -121,10 +106,13 @@ func (s *UserService) GetUsersByRestaurantID(restaurantID string, page, pageSize
 		return helper.BuildErrorResponse("Failed to get users", err.Error(), nil)
 	}
 
-	usersResponse := usersToMapSlice(users)
+	// Remove passwords from response
+	for i := range users {
+		users[i].Password = ""
+	}
 
 	data := map[string]interface{}{
-		"users": usersResponse,
+		"users": users,
 		"pagination": map[string]interface{}{
 			"page":        page,
 			"size":        pageSize,
@@ -143,8 +131,8 @@ func (s *UserService) GetUserByID(id string) helper.Response {
 	}
 
 	// Don't return password
-	userResponse := userToMap(user)
-	return helper.BuildResponse(true, "User retrieved successfully", userResponse)
+	user.Password = ""
+	return helper.BuildResponse(true, "User retrieved successfully", user)
 }
 
 func (s *UserService) UpdateUser(id string, updates map[string]interface{}) helper.Response {
@@ -178,8 +166,8 @@ func (s *UserService) UpdateUser(id string, updates map[string]interface{}) help
 	}
 
 	user, _ := s.UserRepo.FindByID(id)
-	userResponse := userToMap(user)
-	return helper.BuildResponse(true, "User updated successfully", userResponse)
+	user.Password = ""
+	return helper.BuildResponse(true, "User updated successfully", user)
 }
 
 func (s *UserService) DeleteUser(id string) helper.Response {
@@ -212,10 +200,13 @@ func (s *UserService) SearchUsers(query string, page, pageSize int) helper.Respo
 		return helper.BuildErrorResponse("Failed to search users", err.Error(), nil)
 	}
 
-	usersResponse := usersToMapSlice(users)
+	// Remove passwords from response
+	for i := range users {
+		users[i].Password = ""
+	}
 
 	data := map[string]interface{}{
-		"users": usersResponse,
+		"users": users,
 		"pagination": map[string]interface{}{
 			"page":        page,
 			"size":        pageSize,

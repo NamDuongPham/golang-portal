@@ -17,7 +17,7 @@ func (r *RefreshTokenRepository) Create(refreshToken *models.RefreshToken) error
 func (r *RefreshTokenRepository) FindByUserID(userID string) (*models.RefreshToken, error) {
 	var refreshToken models.RefreshToken
 	if err := r.db.Model(&models.RefreshToken{}).
-		Where("user_id = ?", userID).
+		Where("user_id = ? AND deleted_at IS NULL", userID).
 		First(&refreshToken).Error; err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func (r *RefreshTokenRepository) DeleteByUserID(userID string) error {
 func (r *RefreshTokenRepository) FindByID(id string) (*models.RefreshToken, error) {
 	var refreshToken models.RefreshToken
 	if err := r.db.Model(&models.RefreshToken{}).
-		Where("id = ?", id).
+		Where("id = ? AND deleted_at IS NULL", id).
 		First(&refreshToken).Error; err != nil {
 		return nil, err
 	}

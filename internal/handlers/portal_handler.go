@@ -2,26 +2,23 @@ package http
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/namduong/project-layout/internal/services"
 	"github.com/namduong/project-layout/internal/validators"
 )
 
-type AdminHandler struct {
-	AuthService services.AuthServiceInterface
+type PortalHandler struct {
+	AuthPortalService services.AuthPortalServiceInterface
 }
 
 // LOGIN
-func (h *AdminHandler) Login(c *gin.Context) {
-	time.Sleep(5 * time.Second)
+func (h *PortalHandler) Login(c *gin.Context) {
 	body, ok := validators.ValidateLogin(c)
 	if !ok {
 		return
 	}
-
-	res := h.AuthService.Login(body.Username, body.Password)
+	res := h.AuthPortalService.Login(body.Username, body.Password)
 	if !res.Status {
 		c.JSON(http.StatusUnauthorized, res)
 		return
@@ -31,11 +28,11 @@ func (h *AdminHandler) Login(c *gin.Context) {
 }
 
 // LOGOUT
-func (h *AdminHandler) Logout(c *gin.Context) {
+func (h *PortalHandler) Logout(c *gin.Context) {
 	authHeader := c.GetHeader("Authorization")
 	token := authHeader[len("Bearer "):]
 
-	res := h.AuthService.Logout(token)
+	res := h.AuthPortalService.Logout(token)
 	if !res.Status {
 		c.JSON(http.StatusUnauthorized, res)
 		return
@@ -45,7 +42,7 @@ func (h *AdminHandler) Logout(c *gin.Context) {
 }
 
 // REFRESH
-func (h *AdminHandler) RefreshToken(c *gin.Context) {
+func (h *PortalHandler) RefreshToken(c *gin.Context) {
 	var req struct {
 		RefreshToken string `json:"refresh_token" binding:"required"`
 	}
@@ -58,7 +55,7 @@ func (h *AdminHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	res := h.AuthService.RefreshToken(req.RefreshToken)
+	res := h.AuthPortalService.RefreshToken(req.RefreshToken)
 	if !res.Status {
 		c.JSON(http.StatusUnauthorized, res)
 		return

@@ -2,12 +2,12 @@ package auth
 
 import (
 	"errors"
-	"log"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	config "github.com/namduong/project-layout/configs"
+	"github.com/namduong/project-layout/internal/logger"
 )
 
 type Claims struct {
@@ -20,14 +20,14 @@ type Claims struct {
 func getAccessSecretKey() []byte {
 	secret := config.Cfg.JWT.AccessSecretKey
 	if secret == "" {
-		log.Fatal("ACCESS_TOKEN_SECRET is not set in environment variables")
+		logger.GetLogger().Fatal("ACCESS_TOKEN_SECRET is not set in environment variables")
 	}
 	return []byte(secret)
 }
 func getRefreshSecretKey() []byte {
 	secret := config.Cfg.JWT.RefreshSecretKey
 	if secret == "" {
-		log.Fatal("REFRESH_TOKEN_SECRET is not set in environment variables")
+		logger.GetLogger().Fatal("REFRESH_TOKEN_SECRET is not set in environment variables")
 	}
 	return []byte(secret)
 }

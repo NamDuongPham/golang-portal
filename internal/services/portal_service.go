@@ -3,17 +3,19 @@ package services
 import (
 	"github.com/namduong/project-layout/helper"
 	"github.com/namduong/project-layout/internal/auth"
+	"github.com/namduong/project-layout/internal/logger"
 	"github.com/namduong/project-layout/internal/models"
 	"github.com/namduong/project-layout/internal/repositories"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type AuthService struct {
-	AdminRepo        *repositories.AdminRepository
+type AuthPortalService struct {
+	PortalRepo       *repositories.PortalRepository
 	RefreshTokenRepo *repositories.RefreshTokenRepository
 }
 
-func (s *AuthService) saveRefreshToken(rawToken string) error {
+func (s *AuthPortalService) saveRefreshToken(rawToken string) error {
 	claims, err := auth.DecodeRefreshToken(rawToken)
 	if err != nil {
 		return err
@@ -29,22 +31,23 @@ func (s *AuthService) saveRefreshToken(rawToken string) error {
 	return s.RefreshTokenRepo.Create(rt)
 }
 
-func (s *AuthService) Login(username string, password string) helper.Response {
-	admin, err := s.AdminRepo.FindByUsername(username)
+func (s *AuthPortalService) Login(username string, password string) helper.Response {
+	logger.GetLogger().Info("User login attempt", zap.String("username", username))
+	user, err := s.PortalRepo.FindByUsername(username)
 	if err != nil {
-		return helper.BuildErrorResponse("Admin not found", "invalid credentials", nil)
+		return helper.BuildErrorResponse("User not found", "invalid credentials", nil)
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 		return helper.BuildErrorResponse("Wrong password", "invalid credentials", nil)
 	}
 
-	accessToken, err := auth.GenerateAccessToken(admin.ID, admin.UserName)
+	accessToken, err := auth.GenerateAccessToken(user.ID, user.UserName)
 	if err != nil {
 		return helper.BuildErrorResponse("Failed to generate access token", err.Error(), nil)
 	}
 
-	refreshToken, err := auth.GenerateRefreshToken(admin.ID, admin.UserName)
+	refreshToken, err := auth.GenerateRefreshToken(user.ID, user.UserName)
 	if err != nil {
 		return helper.BuildErrorResponse("Failed to generate refresh token", err.Error(), nil)
 	}
@@ -61,7 +64,7 @@ func (s *AuthService) Login(username string, password string) helper.Response {
 	return helper.BuildResponse(true, "Login successful", responseData)
 }
 
-func (s *AuthService) Logout(token string) helper.Response {
+func (s *AuthPortalService) Logout(token string) helper.Response {
 	claims, err := auth.DecodeAccessToken(token)
 	if err != nil {
 		return helper.BuildErrorResponse("Invalid access token", err.Error(), nil)
@@ -77,7 +80,7 @@ func (s *AuthService) Logout(token string) helper.Response {
 	return helper.BuildResponse(true, "Logout successful", nil)
 }
 
-func (s *AuthService) RefreshToken(token string) helper.Response {
+func (s *AuthPortalService) RefreshToken(token string) helper.Response {
 	claims, err := auth.DecodeRefreshToken(token)
 	if err != nil {
 		return helper.BuildErrorResponse("Invalid refresh token", err.Error(), nil)
@@ -118,19 +121,19 @@ func (s *AuthService) RefreshToken(token string) helper.Response {
 	return helper.BuildResponse(true, "Token refreshed successfully", responseData)
 }
 
-func NewAuthService(adminRepo *repositories.AdminRepository, refreshTokenRepo *repositories.RefreshTokenRepository) AuthServiceInterface {
-	return &AuthService{
-		AdminRepo:        adminRepo,
+func NewAuthPortalService(portalRepo *repositories.PortalRepository, refreshTokenRepo *repositories.RefreshTokenRepository) AuthPortalServiceInterface {
+	return &AuthPortalService{
+		PortalRepo:       portalRepo,
 		RefreshTokenRepo: refreshTokenRepo,
 	}
 }
 
-type AuthResponse struct {
+type AuthPortalResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 }
 
-type AuthServiceInterface interface {
+type AuthPortalServiceInterface interface {
 	Login(username, password string) helper.Response
 	Logout(token string) helper.Response
 	RefreshToken(token string) helper.Response
