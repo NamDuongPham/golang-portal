@@ -1,4 +1,4 @@
-name: Deploy to Kubernetes
+name: Deploy to Minikube
 
 on:
   push:
@@ -6,28 +6,20 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Login Docker Hub
+      - name: Docker Login
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-      - name: Build Docker Image
+      - name: Build image
         run: docker build -t namduong0606/golang-portal:latest .
 
-      - name: Push Docker Image
+      - name: Push image
         run: docker push namduong0606/golang-portal:latest
-
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v3
-
-      - name: Configure K8s
-        run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 -d > ~/.kube/config
 
       - name: Rollout deployment
         run: |
