@@ -14,5 +14,19 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  app:
+    image: namduong0606/golang-portal:latest
+    container_name: go_app
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: postgres
+      DB_USER: admin
+      DB_PASSWORD: admin123
+      DB_NAME: mydb
+    depends_on:
+      - postgres
+    restart: always
+
 volumes:
   pgdata:

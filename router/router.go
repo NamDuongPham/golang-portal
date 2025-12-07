@@ -9,6 +9,13 @@ import (
 func InitRouter(authService services.AuthServiceInterface, restaurantService services.RestaurantServiceInterface, ingredientService services.IngredientServiceInterface, userService services.UserServiceInterface, authPortalService services.AuthPortalServiceInterface) *gin.Engine {
 	router := gin.Default()
 
+	router.GET("/healthz", func(c *gin.Context) {
+		c.String(200, "ok")
+	})
+	router.GET("/ready", func(c *gin.Context) {
+		c.String(200, "ok")
+	})
+
 	apiV1 := router.Group("/api/v1")
 	{
 		AdminRouter(apiV1, authService)

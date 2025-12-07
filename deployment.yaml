@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: golang-portal
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: golang-portal
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: golang-portal
+    spec:
+      containers:
+        - name: golang-portal
+          image: namduong0606/golang-portal:latest
+          ports:
+            - containerPort: 8080
+
+          env:
+            - name: DB_SOURCE_HOST
+              value: "postgres"
+            - name: DB_SOURCE_PORT
+              value: "5432"
+            - name: DB_SOURCE_USERNAME
+              value: "admin"
+            - name: DB_SOURCE_PASSWORD
+              value: "admin123"
+            - name: DB_SOURCE_DATABASE
+              value: "mydb"
+            - name: DB_SOURCE_SSL_MODE
+              value: "disable"
+
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 5
+
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
