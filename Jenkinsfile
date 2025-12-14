@@ -2,10 +2,11 @@ pipeline {
   agent any
 
   parameters {
-    string(name: 'TAG', defaultValue: 'latest', description: 'Docker image tag (e.g., ci-123, v1.0.0)')
-    booleanParam(name: 'MINIKUBE', defaultValue: false, description: 'Build inside Minikube daemon (no push to registry)')
-    string(name: 'NAMESPACE', defaultValue: 'default', description: 'Kubernetes namespace for deployment')
-    booleanParam(name: 'SKIP_BUILD', defaultValue: false, description: 'Skip build, deploy only')
+    string(name: 'TAG', defaultValue: 'latest', description: 'Docker image tag')
+    booleanParam(name: 'MINIKUBE', defaultValue: false, description: 'Use Minikube Docker daemon')
+    booleanParam(name: 'SKIP_BUILD', defaultValue: false, description: 'Skip build & push')
+    string(name: 'NAMESPACE', defaultValue: 'default', description: 'K8s namespace')
+    string(name: 'BRANCH', defaultValue: 'main', description: 'Git branch')
   }
 
   environment {
@@ -14,58 +15,95 @@ pipeline {
   }
 
   stages {
+
+    /* ================= CHECKOUT ================= */
     stage('Checkout') {
       steps {
-        echo "Checking out from GitHub..."
-        checkout scm
+        echo "Checkout branch: ${params.BRANCH}"
+        checkout([
+          $class: 'GitSCM',
+          branches: [[name: "*/${params.BRANCH}"]],
+          userRemoteConfigs: [[url: 'https://github.com/your-org/your-repo.git']]
+        ])
       }
     }
 
+    /* ================= ENV CHECK ================= */
     stage('Check Environment') {
       steps {
-        echo "Verifying required tools..."
         bat '''
           echo ==== CHECK ENV ====
-          where make
-          where bash
           where docker
           where kubectl
-          git --version
+          where git
+          docker version
+          kubectl version --client
         '''
       }
     }
 
-    stage('Build & Push') {
+    /* ================= DOCKER LOGIN ================= */
+    stage('Docker Login') {
+      when {
+        allOf {
+          expression { !params.MINIKUBE }
+          expression { !params.SKIP_BUILD }
+        }
+      }
       steps {
-    withCredentials([usernamePassword(
-      credentialsId: 'docker-hub-creds',
-      usernameVariable: 'DOCKER_USERNAME',
-      passwordVariable: 'DOCKER_PASSWORD'
-    )]) {
-      bat '''
-        echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin
-      '''
-
-      bat '''
-        "C:\\Program Files\\Git\\bin\\bash.exe" -lc "./run.sh --tag %TAG% --namespace %NAMESPACE%"
-      '''
+        withCredentials([usernamePassword(
+          credentialsId: 'dockerhub-creds',
+          usernameVariable: 'DOCKER_USERNAME',
+          passwordVariable: 'DOCKER_PASSWORD'
+        )]) {
+          bat 'echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin'
+        }
+      }
     }
-  }
-}
 
+    /* ================= BUILD IMAGE ================= */
+    stage('Build Image') {
+      when {
+        expression { !params.SKIP_BUILD }
+      }
+      steps {
+        bat '''
+          IF "%MINIKUBE%"=="true" (
+            echo Using Minikube docker-env
+            FOR /f "tokens=*" %%i IN ('minikube docker-env --shell cmd') DO %%i
+          )
 
+          docker build -t %FULL_IMAGE% .
+        '''
+      }
+    }
+
+    /* ================= PUSH IMAGE ================= */
+    stage('Push Image') {
+      when {
+        allOf {
+          expression { !params.MINIKUBE }
+          expression { !params.SKIP_BUILD }
+        }
+      }
+      steps {
+        bat 'docker push %FULL_IMAGE%'
+      }
+    }
+
+    /* ================= DEPLOY ================= */
     stage('Deploy') {
       steps {
-        echo "Deploying to namespace: ${params.NAMESPACE}"
         withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_PATH')]) {
           bat '''
-            setlocal enabledelayedexpansion
-            kubectl --kubeconfig="%KUBECONFIG_PATH%" set image deployment/golang-portal golang-portal=%FULL_IMAGE% -n %NAMESPACE% || (
-              echo set-image failed, trying rollout restart
-              kubectl --kubeconfig="%KUBECONFIG_PATH%" rollout restart deployment/golang-portal -n %NAMESPACE%
+            kubectl --kubeconfig="%KUBECONFIG_PATH%" \
+              set image deployment/golang-portal golang-portal=%FULL_IMAGE% -n %NAMESPACE% || (
+              kubectl --kubeconfig="%KUBECONFIG_PATH%" \
+                rollout restart deployment/golang-portal -n %NAMESPACE%
             )
-            kubectl --kubeconfig="%KUBECONFIG_PATH%" rollout status deployment/golang-portal -n %NAMESPACE%
-            kubectl --kubeconfig="%KUBECONFIG_PATH%" get pods -l app=golang-portal -n %NAMESPACE% -o wide
+
+            kubectl --kubeconfig="%KUBECONFIG_PATH%" \
+              rollout status deployment/golang-portal -n %NAMESPACE%
           '''
         }
       }
@@ -73,14 +111,11 @@ pipeline {
   }
 
   post {
-    always {
-      echo "Pipeline execution completed."
+    success {
+      echo "✅ Deploy success: ${FULL_IMAGE}"
     }
     failure {
-      echo "Pipeline failed! Check console output above."
-    }
-    success {
-      echo "Pipeline succeeded! Deployment should be rolling out."
+      echo "❌ Pipeline failed"
     }
   }
 }
