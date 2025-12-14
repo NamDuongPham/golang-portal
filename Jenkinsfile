@@ -1,8 +1,3 @@
-// Jenkinsfile - CI/CD Pipeline for golang-portal
-// Manual trigger (parameterized build)
-// Requires Jenkins agent with: docker, kubectl, bash, git
-// Credentials needed: docker-hub-creds (username/password), kubeconfig (file)
-
 pipeline {
   agent any
 
@@ -49,13 +44,16 @@ pipeline {
         withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
           bat '''
             echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin
-            setlocal enabledelayedexpansion
-            if "%MINIKUBE%"=="true" (
-              "C:\\Program Files\\Git\\bin\\bash.exe" -lc "./run.sh --tag %TAG% --minikube --namespace %NAMESPACE%"
-            ) else (
-              "C:\\Program Files\\Git\\bin\\bash.exe" -lc "./run.sh --tag %TAG% --namespace %NAMESPACE%"
-            )
           '''
+
+          script {
+            // Gọi bash với file trực tiếp (không cần chmod)
+            if (params.MINIKUBE) {
+              bat "\"C:\\Program Files\\Git\\bin\\bash.exe\" ./run.sh --tag ${params.TAG} --minikube --namespace ${params.NAMESPACE}"
+            } else {
+              bat "\"C:\\Program Files\\Git\\bin\\bash.exe\" ./run.sh --tag ${params.TAG} --namespace ${params.NAMESPACE}"
+            }
+          }
         }
       }
     }
