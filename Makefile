@@ -1,46 +1,36 @@
 IMAGE = namduong0606/golang-portal:latest
 
-ifeq ($(OS),Windows_NT)
-# Windows: prefer bash if available, fall back to WSL; otherwise instruct user
-deploy:
-	powershell -NoProfile -ExecutionPolicy Bypass -Command "if (Get-Command bash -ErrorAction SilentlyContinue) { bash -c './run.sh' } elseif (Get-Command wsl -ErrorAction SilentlyContinue) { wsl bash -c './run.sh' } else { Write-Host 'ERROR: bash not found. Open Git Bash or WSL and run make there (or run bash ./run.sh).'; exit 1 }"
+.PHONY: deployapp build push deploy restart status logs help
 
-build:
-	powershell -NoProfile -ExecutionPolicy Bypass -Command "if (Get-Command bash -ErrorAction SilentlyContinue) { bash -c 'chmod +x ./run.sh || true; ./run.sh --build-only' } elseif (Get-Command wsl -ErrorAction SilentlyContinue) { wsl bash -c 'chmod +x ./run.sh || true; ./run.sh --build-only' } else { Write-Host 'ERROR: bash not found.'; exit 1 }"
+deployapp: ## Build, push and deploy
+	bash ./run.sh --tag $(TAG)
 
-push:
-	powershell -NoProfile -ExecutionPolicy Bypass -Command "if (Get-Command bash -ErrorAction SilentlyContinue) { bash -c './run.sh --push-only' } elseif (Get-Command wsl -ErrorAction SilentlyContinue) { wsl bash -c './run.sh --push-only' } else { Write-Host 'ERROR: bash not found.'; exit 1 }"
+build: ## Build image only
+	bash ./run.sh --tag $(TAG) --build-only
 
-restart:
-	kubectl rollout restart deployment/golang-portal
+push: ## Push image only
+	bash ./run.sh --tag $(TAG) --push-only
 
-status:
-	kubectl rollout status deployment/golang-portal
+deploy: ## Deploy only (kubectl set-image/rollout)
+	bash ./run.sh --tag $(TAG) --deploy-only
 
-logs:
-	kubectl logs -l app=golang-portal --tail=100 -f
+restart: ## Rollout restart deployment
+	kubectl rollout restart deployment/golang-portal -n $(NAMESPACE)
 
-else
-# Unix-like shells (Git Bash, WSL, Linux, macOS)
-deploy:
-	chmod +x ./run.sh || true
-	bash -c "./run.sh"
+status: ## Check rollout status
+	kubectl rollout status deployment/golang-portal -n $(NAMESPACE)
 
-build:
-	chmod +x ./run.sh || true
-	bash -c "./run.sh --build-only"
+logs: ## Tail pod logs
+	kubectl logs -l app=golang-portal --tail=100 -f -n $(NAMESPACE)
 
-push:
-	chmod +x ./run.sh || true
-	bash -c "./run.sh --push-only"
+help: ## Show this help
+	@echo "Usage: make <target> [TAG=tag] [NAMESPACE=namespace]"
+	@echo ""
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' Makefile | awk 'BEGIN {FS=":.*?## "} {printf "  %-15s %s\n", $$1, $$2}'
+	@echo ""
+	@echo "Examples:"
+	@echo "  make deployapp TAG=v1.0.0"
+	@echo "  make build TAG=ci-123"
+	@echo "  make push TAG=ci-123"
+	@echo "  make deploy TAG=ci-123"
 
-restart:
-	kubectl rollout restart deployment/golang-portal
-
-status:
-	kubectl rollout status deployment/golang-portal
-
-logs:
-	kubectl logs -l app=golang-portal --tail=100 -f
-
-endif
