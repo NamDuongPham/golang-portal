@@ -36,27 +36,23 @@ pipeline {
     }
 
     stage('Build & Push') {
-      when {
-        expression { !params.SKIP_BUILD }
-      }
       steps {
-        echo "Building and pushing image: ${FULL_IMAGE}"
-        withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-          bat '''
-            echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin
-          '''
+    withCredentials([usernamePassword(
+      credentialsId: 'docker-hub-creds',
+      usernameVariable: 'DOCKER_USERNAME',
+      passwordVariable: 'DOCKER_PASSWORD'
+    )]) {
+      bat '''
+        echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin
+      '''
 
-          script {
-            // Gọi bash với file trực tiếp (không cần chmod)
-            if (params.MINIKUBE) {
-              bat "\"C:\\Program Files\\Git\\bin\\bash.exe\" ./run.sh --tag ${params.TAG} --minikube --namespace ${params.NAMESPACE}"
-            } else {
-              bat "\"C:\\Program Files\\Git\\bin\\bash.exe\" ./run.sh --tag ${params.TAG} --namespace ${params.NAMESPACE}"
-            }
-          }
-        }
-      }
+      bat '''
+        "C:\\Program Files\\Git\\bin\\bash.exe" -lc "./run.sh --tag %TAG% --namespace %NAMESPACE%"
+      '''
     }
+  }
+}
+
 
     stage('Deploy') {
       steps {
