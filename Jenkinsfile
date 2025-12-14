@@ -56,7 +56,7 @@ pipeline {
     stage('Push Image') {
       steps {
         echo "📤 Pushing image: ${FULL_IMAGE}"
-        withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+        withCredentials([usernamePassword(credentialsId: params.DOCKER_CREDENTIALS, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
           bat '''
             setlocal enabledelayedexpansion
             echo ==== DOCKER LOGIN ====
